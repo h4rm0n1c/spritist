@@ -34,6 +34,7 @@ use crate::{
 		PixelFormat,
 		spr,
 		s16,
+		s32,
 		m16,
 		c16,
 		blk,
@@ -58,7 +59,8 @@ pub struct FileState {
 	pub pixel_format: Mutex<PixelFormat>,
 	pub cols: Mutex<usize>,
 	pub rows: Mutex<usize>,
-	pub read_only: Mutex<bool>
+	pub read_only: Mutex<bool>,
+	startup_path: Mutex<Option<PathBuf>>
 }
 
 pub struct FileModifiedCallback {
@@ -77,9 +79,31 @@ impl FileState {
 			pixel_format: Mutex::new(PixelFormat::Format565),
 			cols: Mutex::new(0),
 			rows: Mutex::new(0),
-			read_only: Mutex::new(false)
+			read_only: Mutex::new(false),
+			startup_path: Mutex::new(std::env::args_os().nth(1).map(PathBuf::from))
 		}
 	}
+}
+
+pub fn open_startup_file(handle: &AppHandle) {
+	let file_path = {
+		let state: State<FileState> = handle.state();
+		let startup_path = state.startup_path.lock().unwrap().take();
+		startup_path
+	};
+
+	let Some(file_path) = file_path.filter(|path| path.is_file()) else {
+		return;
+	};
+
+	handle.emit("show_spinner", ()).unwrap();
+	let handle = handle.clone();
+	spawn(async move {
+		if let Err(why) = open_file_from_path(&handle, &file_path) {
+			error_dialog(why.to_string());
+		}
+		handle.emit("hide_spinner", ()).unwrap();
+	});
 }
 
 pub struct SpriteInfo {
@@ -100,7 +124,7 @@ pub fn create_open_dialog(handle: &AppHandle, use_default_filter: bool) -> FileD
 	let mut file_dialog = FileDialog::new();
 
 	if use_default_filter {
-		file_dialog = file_dialog.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "dta", "DTA", "photo album", "Photo Album", "png", "PNG", "gif", "GIF", "bmp", "BMP"]);
+		file_dialog = file_dialog.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "s32", "S32", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "dta", "DTA", "photo album", "Photo Album", "png", "PNG", "gif", "GIF", "bmp", "BMP"]);
 	}
 
 	let file_state: State<FileState> = handle.state();
@@ -432,6 +456,7 @@ pub fn get_sprite_info(handle: &AppHandle, file_path: &Path) -> Result<SpriteInf
 			}
 		},
 		"s16" => s16::decode(&bytes),
+		"s32" => s32::decode(&bytes),
 		"c16" => c16::decode(&bytes),
 		"m16" => m16::decode(&bytes),
 		"n16" => m16::decode(&bytes),
@@ -514,7 +539,7 @@ pub fn activate_save_file(handle: AppHandle, file_state: State<FileState>) {
 pub fn activate_save_as(handle: AppHandle) {
 	let file_handle = create_save_dialog(&handle, None, None)
 		.set_title("Save As")
-		.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "dta", "DTA", "photo album", "Photo Album", "PHOTO ALBUM"])
+		.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "s32", "S32", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "dta", "DTA", "photo album", "Photo Album", "PHOTO ALBUM"])
 		.save_file();
 	if let Some(file_handle) = file_handle {
 		handle.emit("show_spinner", ()).unwrap();
@@ -528,7 +553,7 @@ pub fn activate_save_as(handle: AppHandle) {
 }
 
 pub fn save_file_to_path(handle: &AppHandle, file_path: &Path) -> Result<(), Box<dyn Error>> {
-	let extension_err = "File does not have a valid file extension (\".spr\", \".s16\", \".c16\", \".blk\")";
+	let extension_err = "File does not have a valid file extension (\".spr\", \".s16\", \".s32\", \".c16\", \".blk\")";
 	let extension = file_path.extension().ok_or(extension_err)?;
 	let extension_str = extension.to_str().ok_or(extension_err)?;
 
@@ -545,6 +570,7 @@ pub fn save_file_to_path(handle: &AppHandle, file_path: &Path) -> Result<(), Box
 	let data = match extension_str {
 		"spr" => Some(spr::encode(sprite_info, &palette)?),
 		"s16" => Some(s16::encode(sprite_info)?),
+		"s32" | "S32" => Some(s32::encode(sprite_info)?),
 		"c16" => Some(c16::encode(sprite_info)?),
 		"m16" => Some(m16::encode(sprite_info)?),
 		"n16" => Some(m16::encode(sprite_info)?),

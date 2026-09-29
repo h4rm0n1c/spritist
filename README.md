@@ -4,6 +4,7 @@ A sprite utility for the [Creatures game series](https://creatures.wiki/).
 ## Supported Formats
 * [SPR](https://creatures.wiki/SPR_files) (Creatures 0 and Creatures 1)
 * [S16](https://creatures.wiki/S16_files) (Creatures 2)
+* [S32](https://lisdude.com/Creatures/Community/specs/s32.md) (PNG-backed Creatures community sprite format)
 * [C16](https://creatures.wiki/C16_files) (Creatures 3/Docking Station)
 * [BLK](https://creatures.wiki/BLK_files) (Background images for Creatures 3/Docking Station)
 * [Photo Album](https://sheeslostknowledge.blogspot.com/2014/12/extracting-information-from-creatures-1.html) (Creatures 1)

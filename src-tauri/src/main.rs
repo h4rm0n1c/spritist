@@ -297,6 +297,7 @@ fn main() {
 		.on_page_load(|window, _| {
 			config::load_config_file(window.app_handle().clone());
 			state::update_window_title(window.app_handle());
+			file::open_startup_file(&window.app_handle());
 		})
 
 		.register_uri_scheme_protocol("getframe", |context, request| {
