@@ -76,6 +76,7 @@ fn main() {
 					&PredefinedMenuItem::separator(handle)?,
 					&Submenu::with_id_and_items(handle, "import", "Import", true, &[
 						&MenuItem::with_id(handle, "import_png_as_blk", "Import PNG as BLK", true, Some("CmdOrCtrl+B"))?,
+						&MenuItem::with_id(handle, "import_png_as_s32_background", "Import PNG as S32 Background", true, None::<&str>)?,
 						&MenuItem::with_id(handle, "import_spritesheet", "Import Spritesheet", true, Some("CmdOrCtrl+T"))?,
 					])?,
 					&Submenu::with_id_and_items(handle, "export", "Export", true, &[
@@ -175,6 +176,7 @@ fn main() {
 					"export_gif" => handle.emit("export_gif", "").unwrap(),
 					"export_spritesheet" => handle.emit("export_spritesheet", "").unwrap(),
 					"import_png_as_blk" => import::activate_import_png_as_blk(handle),
+					"import_png_as_s32_background" => import::activate_import_png_as_s32_background(handle),
 					"import_spritesheet" => import::activate_import_spritesheet(handle),
 					"quit" => try_quit(handle),
 
@@ -281,6 +283,7 @@ fn main() {
 			export::select_png_path,
 			export::select_gif_path,
 			import::activate_import_png_as_blk,
+			import::activate_import_png_as_s32_background,
 			import::activate_import_spritesheet,
 			import::import_spritesheet,
 			import::import_spritebuilder_spritesheet,

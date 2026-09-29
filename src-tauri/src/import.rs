@@ -24,8 +24,17 @@ struct SpritesheetCallback {
 
 #[tauri::command]
 pub fn activate_import_png_as_blk(handle: AppHandle) {
-	if let Some(file_path) = activate_import(&handle, "Import PNG as BLK".to_string()) {
-		if let Err(why) = import_png_as_blk_from_path(&handle, &file_path) {
+	activate_import_png_as_background(handle, "Import PNG as BLK", "blk");
+}
+
+#[tauri::command]
+pub fn activate_import_png_as_s32_background(handle: AppHandle) {
+	activate_import_png_as_background(handle, "Import PNG as S32 Background", "s32");
+}
+
+fn activate_import_png_as_background(handle: AppHandle, title: &str, extension: &str) {
+	if let Some(file_path) = activate_import(&handle, title.to_string()) {
+		if let Err(why) = import_png_as_background_from_path(&handle, &file_path, extension) {
 			error_dialog(why.to_string());
 		}
 	}
@@ -64,7 +73,7 @@ fn choose_image_file(handle: &AppHandle, title: &str) -> Option<PathBuf> {
 		.pick_file()
 }
 
-fn import_png_as_blk_from_path(handle: &AppHandle, file_path: &Path) -> Result<(), Box<dyn Error>> {
+fn import_png_as_background_from_path(handle: &AppHandle, file_path: &Path, extension: &str) -> Result<(), Box<dyn Error>> {
 	let png_image = get_image(file_path)?;
 
 	let cols = (png_image.width() as f32 / 128.0).ceil() as u32;
@@ -97,15 +106,15 @@ fn import_png_as_blk_from_path(handle: &AppHandle, file_path: &Path) -> Result<(
 
 	reset_state(handle);
 
-	let blk_file_path = file_path.with_extension("blk");
-	let blk_file_title = match blk_file_path.file_name() {
+	let background_file_path = file_path.with_extension(extension);
+	let background_file_title = match background_file_path.file_name() {
 		Some(file_name) => file_name.to_string_lossy().into_owned(),
 		None => "".to_string()
 	};
 
 	let file_state: State<FileState> = handle.state();
-	*file_state.file_title.lock().unwrap() = blk_file_title;
-	*file_state.file_path.lock().unwrap() = Some(blk_file_path);
+	*file_state.file_title.lock().unwrap() = background_file_title;
+	*file_state.file_path.lock().unwrap() = Some(background_file_path);
 	*file_state.file_is_modified.lock().unwrap() = true;
 	*file_state.file_is_open.lock().unwrap() = true;
 	*file_state.frames.lock().unwrap() = frames;
