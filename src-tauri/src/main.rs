@@ -10,6 +10,7 @@ use tauri::{
 	AppHandle,
 	WindowEvent,
 	DragDropEvent,
+	webview::PageLoadEvent,
 	Manager,
 	State,
 	Emitter
@@ -294,10 +295,12 @@ fn main() {
 			try_quit
 		])
 
-		.on_page_load(|window, _| {
+		.on_page_load(|window, payload| {
 			config::load_config_file(window.app_handle().clone());
 			state::update_window_title(window.app_handle());
-			file::open_startup_file(&window.app_handle());
+			if payload.event() == PageLoadEvent::Finished {
+				file::open_startup_file(&window.app_handle());
+			}
 		})
 
 		.register_uri_scheme_protocol("getframe", |context, request| {
