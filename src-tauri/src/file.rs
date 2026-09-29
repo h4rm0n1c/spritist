@@ -38,6 +38,7 @@ use crate::{
 		m16,
 		c16,
 		blk,
+		blk32,
 		dta,
 		photo_album,
 		black_to_transparent
@@ -124,7 +125,7 @@ pub fn create_open_dialog(handle: &AppHandle, use_default_filter: bool) -> FileD
 	let mut file_dialog = FileDialog::new();
 
 	if use_default_filter {
-		file_dialog = file_dialog.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "s32", "S32", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "dta", "DTA", "photo album", "Photo Album", "png", "PNG", "gif", "GIF", "bmp", "BMP"]);
+		file_dialog = file_dialog.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "s32", "S32", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "blk32", "BLK32", "dta", "DTA", "photo album", "Photo Album", "png", "PNG", "gif", "GIF", "bmp", "BMP"]);
 	}
 
 	let file_state: State<FileState> = handle.state();
@@ -250,7 +251,7 @@ pub fn open_file_from_path(handle: &AppHandle, file_path: &Path) -> Result<(), B
 
 	let mut is_background = false;
 	if let Some(extension) = file_path.extension() {
-		if extension.to_string_lossy().to_lowercase() == "blk" {
+		if matches!(extension.to_string_lossy().to_lowercase().as_str(), "blk" | "blk32") {
 			is_background = true;
 		}
 	}
@@ -461,6 +462,7 @@ pub fn get_sprite_info(handle: &AppHandle, file_path: &Path) -> Result<SpriteInf
 		"m16" => m16::decode(&bytes),
 		"n16" => m16::decode(&bytes),
 		"blk" => blk::decode(&bytes),
+		"blk32" => blk32::decode(&bytes),
 		"dta" => dta::decode(&bytes),
 		"photo album" => {
 			photo_album::decode(&bytes, &palette)
@@ -539,7 +541,7 @@ pub fn activate_save_file(handle: AppHandle, file_state: State<FileState>) {
 pub fn activate_save_as(handle: AppHandle) {
 	let file_handle = create_save_dialog(&handle, None, None)
 		.set_title("Save As")
-		.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "s32", "S32", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "dta", "DTA", "photo album", "Photo Album", "PHOTO ALBUM"])
+		.add_filter("Sprites", &["spr", "SPR", "s16", "S16", "s32", "S32", "c16", "C16", "m16", "M16", "n16", "N16", "blk", "BLK", "blk32", "BLK32", "dta", "DTA", "photo album", "Photo Album", "PHOTO ALBUM"])
 		.save_file();
 	if let Some(file_handle) = file_handle {
 		handle.emit("show_spinner", ()).unwrap();
@@ -553,7 +555,7 @@ pub fn activate_save_as(handle: AppHandle) {
 }
 
 pub fn save_file_to_path(handle: &AppHandle, file_path: &Path) -> Result<(), Box<dyn Error>> {
-	let extension_err = "File does not have a valid file extension (\".spr\", \".s16\", \".s32\", \".c16\", \".blk\")";
+	let extension_err = "File does not have a valid file extension (\".spr\", \".s16\", \".s32\", \".c16\", \".blk\", \".blk32\")";
 	let extension = file_path.extension().ok_or(extension_err)?;
 	let extension_str = extension.to_str().ok_or(extension_err)?;
 
@@ -575,6 +577,7 @@ pub fn save_file_to_path(handle: &AppHandle, file_path: &Path) -> Result<(), Box
 		"m16" => Some(m16::encode(sprite_info)?),
 		"n16" => Some(m16::encode(sprite_info)?),
 		"blk" => Some(blk::encode(sprite_info)?),
+		"blk32" | "BLK32" => Some(blk32::encode(sprite_info)?),
 		_ => None
 	}.ok_or(extension_err)?;
 
