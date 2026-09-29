@@ -81,9 +81,19 @@ impl FileState {
 			cols: Mutex::new(0),
 			rows: Mutex::new(0),
 			read_only: Mutex::new(false),
-			startup_path: Mutex::new(std::env::args_os().nth(1).map(PathBuf::from))
+			startup_path: Mutex::new(
+				std::env::args_os()
+					.skip(1)
+					.map(PathBuf::from)
+					.find(|path| path.is_file())
+			)
 		}
 	}
+}
+
+#[tauri::command]
+pub fn frontend_ready(handle: AppHandle) {
+	open_startup_file(&handle);
 }
 
 pub fn open_startup_file(handle: &AppHandle) {
