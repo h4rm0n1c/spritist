@@ -45,12 +45,17 @@ fn read_image_header(buffer: &mut Bytes) -> Result<ImageHeader, Box<dyn Error>> 
 
 fn read_image_data(contents: &[u8], header: &ImageHeader, pixel_format: PixelFormat) -> Result<RgbaImage, Box<dyn Error>> {
 	let mut image = RgbaImage::new(header.width.into(), header.height.into());
-	let mut buffer = Bytes::copy_from_slice(contents);
-	buffer.advance(header.offset as usize);
+	let pixel_count = usize::from(header.width)
+		.checked_mul(usize::from(header.height))
+		.ok_or_else(image_error)?;
+	let data_len = pixel_count.checked_mul(2).ok_or_else(image_error)?;
+	let start = usize::try_from(header.offset).map_err(|_| image_error())?;
+	let end = start.checked_add(data_len).ok_or_else(image_error)?;
+	let data = contents.get(start..end).ok_or_else(image_error)?;
 	for y in 0..header.height {
 		for x in 0..header.width {
-			if buffer.remaining() < 2 { return Err(image_error()); }
-			let pixel_data = buffer.get_u16_le();
+			let pixel_index = (usize::from(y) * usize::from(header.width) + usize::from(x)) * 2;
+			let pixel_data = u16::from_le_bytes([data[pixel_index], data[pixel_index + 1]]);
 			let color = parse_pixel(pixel_data, pixel_format);
 			image.put_pixel(x.into(), y.into(), color);
 		}
@@ -145,4 +150,21 @@ pub fn encode(sprite_info: SpriteInfo) -> Result<Bytes, Box<dyn Error>> {
 	buffer.extend_from_slice(&images_buffer);
 
 	Ok(buffer.freeze())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::decode;
+
+	#[test]
+	fn rejects_truncated_image_data() {
+		let contents = [
+			1, 0, 0, 0, // 565 pixel format
+			1, 0, // one image
+			14, 0, 0, 0, // image data offset
+			1, 0, // width
+			1, 0, // height
+		];
+		assert!(decode(&contents).is_err());
+	}
 }
