@@ -466,7 +466,16 @@ pub fn get_sprite_info(handle: &AppHandle, file_path: &Path) -> Result<SpriteInf
 				}
 			}
 		},
-		"s16" => s16::decode(&bytes),
+		"s16" => {
+			if file_path.file_name()
+				.map(|name| name.to_string_lossy().eq_ignore_ascii_case("back.s16"))
+				.unwrap_or(false)
+			{
+				s16::decode_background(&bytes)
+			} else {
+				s16::decode(&bytes)
+			}
+		},
 		"s32" => s32::decode(&bytes),
 		"c16" => c16::decode(&bytes),
 		"m16" => m16::decode(&bytes),
